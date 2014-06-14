@@ -2,126 +2,126 @@ var http = require('http');
 var url = require('url');
 var zlib = require('zlib');
 var print_r = require('print_r').print_r;
+var socket = require('socket.io-client')('http://localhost:8080');
+var sprintf = require('sprintf').sprintf;
+//vsprintf = require('sprintf').vsprintf;
 
-//{ DOMAIN: IP}
-var localHosts = {
-  'cashslide.co.kr:8003': 'dev.fronto.co:80',
-  // 'cashslide.co.kr:80': 'naver.com:80',
+// SOCKET.IO
+socket.on('connect', function(){
+    socket.on('chat message', function(msg){
+        console.log('message: ' + msg);
+        //socket.emit('chat message', msg);
+    });
 
+    socket.on('disconnect', function(){});
+});
+
+function send_websocket(message)
+{
+    socket.emit('chat message', JSON.stringify(message));
 }
 
 function p(obj)
 {
-  return console.log(print_r(obj));
-
-  console.log("{");
-  for (var i in obj) {
-    console.log("    '%s': '%s',", i, obj[i])
-  }
-  console.log("}\n");
+    return console.log(print_r(obj));
+    console.log("{");
+    for (var k in obj) {
+        console.log("    '%s': '%s',", k, obj[k])
+    }
+    console.log("}\n");
 }
 
 function deepCopy(x)
 {
-  return JSON.parse(JSON.stringify(x));
+    return JSON.parse(JSON.stringify(x));
 }
 
+
+
+
+
+//{ DOMAIN: IP}
+var localHosts = {
+    'cashslide.co.kr:80': 'dev.fronto.co:80'
+    // 'cashslide.co.kr:80': 'naver.com:80',
+};
+
 http.createServer(function(request, response) {
-  var info = url.parse(request.url);
-// p(tmp);
-// protocol] http:
-// [slashes] true
-// [auth] null
-// [host] cashslide.co.kr:8003
-// [port] 8003
-// [hostname] cashslide.co.kr
-// [hash] null
-// [search] null
-// [query] null
-// [pathname] /check_version
-// [path] /check_version
-// [href] http://cashslide.co.kr:8003/check_version
+    var info = url.parse(request.url);
+    var reqInfoOrigin = {
+        'host': info['hostname'],
+        'ip': info['hostname'],
+        'port': (info['port'] ? info['port'] : 80),
+        'path': info['path']
+    }
+    var reqInfo = deepCopy(reqInfoOrigin);
 
-  var reqInfoOrigin = {
-    'host': info['hostname'],
-    'ip': info['hostname'],
-    'port': (info['port'] ? info['port'] : 80),
-    'path': info['path'],
-  }
-  var reqInfo = deepCopy(reqInfoOrigin);
+    //localHosts에 매칭되는 도메인:포트가 있으면 목적지 변경!
+    source_key = reqInfo['host'] + ':' + reqInfo['port'];
+    if (targetHost = localHosts[source_key]) {
+        var tmp = url.parse('http://' + targetHost);
+        reqInfo['host'] = tmp['hostname'];
+        reqInfo['ip'] = tmp['hostname'];
+        reqInfo['port'] = tmp['port'];
+        request.headers['host'] = tmp['host'];
+    }
+    delete request.headers['accept-encoding'];
 
-  //localHosts에 매칭되는 도메인:포트가 있으면 목적지 변경!
-  source_key = reqInfo['host'] + ':' + reqInfo['port'];
-  if (targetHost = localHosts[source_key]) {
-    //console.log("> >>>>>>>> " + targetHost);
-    // p(targetHost);
-
-    var tmp = url.parse('http://' + targetHost);
-    
-    reqInfo['host'] = tmp['hostname'];
-    reqInfo['ip'] = tmp['hostname'];
-    reqInfo['port'] = tmp['port'];
-
-    request.headers['host'] = tmp['host'];
-  }
-  delete request.headers['accept-encoding'];// = '';
-
-
-  var is_finter_ok = false;
-  var src = reqInfoOrigin['host'] + ':' + reqInfoOrigin['port'];
-  var tar = reqInfo['host'] + ':' + reqInfo['port'];
-  if (src != tar) {
+    var is_finter_ok = false;
+    var src = reqInfoOrigin['host'] + ':' + reqInfoOrigin['port'];
+    var tar = reqInfo['host'] + ':' + reqInfo['port'];
+    if (src != tar) {
+        is_finter_ok = true;
+    }
     is_finter_ok = true;
-  }
-  is_finter_ok = true;
 
-  if (is_finter_ok) {
-    p("*** Proxying: [ " + src + " to " + tar + " ]");
-    p(request.headers)
-  }
-
-
-  var proxy = http.createClient(reqInfo['port'], reqInfo['ip'])
-  var proxy_request = proxy.request(request.method, info['path'], request.headers);
-
-    var message = '';
-
+    var proxy = http.createClient(reqInfo['port'], reqInfo['ip']);
+    var proxy_request = proxy.request(request.method, reqInfo['path'], request.headers);
+    request._body = '';
+    response._body = '';
     proxy_request.addListener('response', function (proxy_response) {
 
-      proxy_response.addListener('data', function(chunk) {
-        message+= chunk;
-        response.write(chunk, 'binary');
-      });
-      
-      proxy_response.addListener('end', function() {
-        response.end();
+        proxy_response.addListener('data', function(chunk) {
+            response._body += chunk;
+            response.write(chunk, 'binary');
+        });
 
-        // if (this.headers['content-encoding'] == 'gzip') {
-        //   p("X1.");
-        // } else if (this.headers['content-encoding'] == 'deflate') {
-        //   p("X2.");
-        // }
+        proxy_response.addListener('end', function() {
+            if (is_finter_ok) {
+                result = {
+                    'request': {
+                        'url': request.url,
+                        'path': reqInfo['path'],
+                        'method': request.method,
+                        'http_version': request.httpVersion,
+                        'header': request.headers,
+                        'body': request._body
+                    },
+                    'response': {
+                        'status_code': this.statusCode,
+                        'header': this.headers,
+                        'body': response._body
+                    }
+                };
 
-        if (is_finter_ok) {
-          result = {
-            'header': this.headers,
-            'body': message,
-          }
-          p(result);
-        }
-      });
-      
-      response.writeHead(proxy_response.statusCode, proxy_response.headers);
+                send_websocket(result);
+            }
 
-  });
-  
-  request.addListener('data', function(chunk) {
-    // console.log("<<< " + chunk);
+            response.end();
 
-    proxy_request.write(chunk, 'binary');
-  });
+        });
+        response.writeHead(proxy_response.statusCode, proxy_response.headers);
+    });
 
-  request.addListener('end', function() {
-    proxy_request.end();
-  });
-}).listen(8080);
+    request.addListener('data', function(chunk) {
+        request._body+= chunk;
+        proxy_request.write(chunk, 'binary');
+    });
+
+    request.addListener('end', function() {
+        proxy_request.end();
+    });
+}).listen(8888, function() {
+    console.log('listening on *:8888');
+});
+

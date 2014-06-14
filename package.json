@@ -1,11 +1,15 @@
 {
-  "name": "application-name",
+  "name": "http-proxy-mon",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "start": "node app.js"
   },
   "dependencies": {
-    "print_r": "*"
+    "print_r": "0.0.1",
+    "socket.io": "1.0.4",
+    "socket.io-client": "1.0.4",
+    "express": "4.4.3",
+    "sprintf": "0.1.3"
   }
 }

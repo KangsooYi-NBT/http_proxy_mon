@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+    <title>HTTP Proxy MON</title>
+    <style>
+        *, body { font: 13px Verdana; }
+        #request_info {
+            list-style-type: decimal;
+        }
+
+        #request_info li {
+            width: 800px;
+            display: block;
+            overflow: hidden;
+            margin: 1em;
+        }
+
+        li {
+            width: 400px;
+            overflow: hidden;
+        }
+
+        blockquote {
+            background-color: #cdcdcd;
+            margin: 0;
+            padding: 10px;
+            font-style: italic;
+        }
+
+        #request_info {
+            vertical-align: top;
+        }
+
+        #http_request,
+        #http_response {
+            display: inline-block;
+            height: 100%;
+            min-width: 100%;
+            width: 400px;
+            overflow-y: scroll;
+            overflow-x: auto;
+            word-break: break-all;
+
+        }
+        #http_request {
+            color: blue;
+        }
+        #http_response {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <table border="1" width="100%" height="100%">
+        <tr>
+            <td colspan="2">
+                <ol id="request_info"></ol>
+            </td>
+        </tr>
+        <tr height="300">
+            <td width="50%"><div id="http_request"></div></td>
+            <td width="50%"><div id="http_response"></div></td>
+        </tr>
+    </table>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+        var socket = io();
+
+        // Message Receiver
+        socket.on('chat message', function(msg){
+            var json = JSON.parse(msg);
+            url = json['request']['url'];
+            req = getRequestOrigin(json['request']);
+            resp = getResponseOrigin(json['response']);
+
+            $('#request_info').append($('<li>').text(url));
+            $('#http_request').html(req);
+            $('#http_response').html(resp);
+        });
+
+        function getRequestOrigin(obj)
+        {
+            var line = [];
+            line.push(obj['method'] + ' ' +  obj['path'] + ' HTTP/' + obj['http_version']);
+            for (var k in obj['header']) {
+                line.push(k + ': ' + obj['header'][k]);
+            }
+            line.push('');
+            line.push(obj['body']);
+            line.push('');
+            line.push('<blockquote> curl ' + obj['url'] + ' -d \'' + obj['body'] + '\' </blockquote>');
+            return line.join('<br />');
+        }
+
+        function getResponseOrigin(obj)
+        {
+            var line = [];
+            line.push('HTTP ' + obj['status_code'] + ' ' + getStatusText(obj['status_code']));
+            for (var k in obj['header']) {
+                line.push(k + ': ' + obj['header'][k]);
+            }
+            line.push('');
+            body = obj['body'];
+            if (typeof body == 'undefined') {
+                body = '';
+            }
+            body = body.replace(/\</g, '*');
+            line.push(body);
+            return line.join('<br />');
+        }
+
+
+        function getStatusText(code)
+        {
+            var statusText = {
+                  '100': 'Continue'
+                , '101': 'Switching Protocols'
+                , '200': 'OK'
+                , '201': 'Created'
+                , '202': 'Accepted'
+                , '203': 'Non-Authoritative Information'
+                , '204': 'No Content'
+                , '205': 'Reset Content'
+                , '206': 'Partial Content'
+                , '300': 'Multiple Choices'
+                , '301': 'Moved Permanently'
+                , '302': 'Found'
+                , '303': 'See Other'
+                , '304': 'Not Modified'
+                , '305': 'Use Proxy'
+                , '307': 'Temporary Redirect'
+                , '400': 'Bad Request'
+                , '401': 'Unauthorized'
+                , '402': 'Payment Required'
+                , '403': 'Forbidden'
+                , '404': 'Not Found'
+                , '405': 'Method Not Allowed'
+                , '406': 'Not Acceptable'
+                , '407': 'Proxy Authentication Required'
+                , '408': 'Request Time-out'
+                , '409': 'Conflict'
+                , '410': 'Gone'
+                , '411': 'Length Required'
+                , '412': 'Precondition Failed'
+                , '413': 'Request Entity Too Large'
+                , '414': 'Request-URI Too Large'
+                , '415': 'Unsupported Media Type'
+                , '416': 'Requested range not satisfiable'
+                , '417': 'Expectation Failed'
+                , '500': 'Internal Server Error'
+                , '501': 'Not Implemented'
+                , '502': 'Bad Gateway'
+                , '503': 'Service Unavailable'
+                , '504': 'Gateway Time-out'
+                , '505': 'HTTP Version not supported'
+            };
+
+            return statusText[code];
+        }
+    </script>
+</body>
+</html>
