@@ -1,0 +1,33 @@
+.font {
+    font-size: 10pt;
+}
+
+.list-group {
+    height: 200px;
+    overflow-y: scroll;
+}
+
+.list-group-item {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    display: block;
+    height: 30px;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+}
+
+
+#http_request
+, #http_response {
+    min-height: 150px;
+    max-height: 500px;
+    overflow-y: scroll;
+    overflow-wrap: break-word;
+}
+
+
+.def_message {
+    color: #cccccc;
+    font-style: italic;
+}

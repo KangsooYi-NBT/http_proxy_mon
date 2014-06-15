@@ -42,8 +42,8 @@ function deepCopy(x)
 
 //{ DOMAIN: IP}
 var localHosts = {
-    'cashslide.co.kr:80': 'dev.fronto.co:80'
-    // 'cashslide.co.kr:80': 'naver.com:80',
+//    'cashslide.co.kr:80': 'dev.fronto.co:80'
+//    'cashslide.co.kr:80': 'naver.com:80',
 };
 
 http.createServer(function(request, response) {
