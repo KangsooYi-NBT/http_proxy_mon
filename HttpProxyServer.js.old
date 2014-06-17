@@ -1,4 +1,6 @@
 var http = require('http');
+var https = require('https');
+var fs = require('fs');
 var url = require('url');
 var zlib = require('zlib');
 var print_r = require('print_r').print_r;
@@ -46,8 +48,52 @@ var localHosts = {
 //    'cashslide.co.kr:80': 'naver.com:80',
 };
 
+// read in the private key and certificate
+var pk = fs.readFileSync('./privatekey.pem');
+var pc = fs.readFileSync('./certificate.pem');
+var opts = { key: pk, cert: pc };
+// create the secure server
+var serv = https.createServer(opts, function(req, res) {
+    console.log(req);
+
+    var msg = ''
+    var options = {
+        hostname: 'encrypted.google.com',
+        port: 443,
+        path: '/',
+        method: 'GET'
+    };
+    var _req = https.request(options, function(_res) {
+        console.log("statusCode: ", _res.statusCode);
+        console.log("headers: ", _res.headers);
+
+        _res.on('data', function(d) {
+            msg+= d;
+//            process.stdout.write(d);
+        });
+        _res.on('end', function(d) {
+            res.write(msg);
+            res.end();
+//            process.stdout.write('xxx');
+        });
+    });
+    _req.end();
+
+    _req.on('error', function(e) {
+        console.error(e);
+    });
+
+
+//        createClient(reqInfo['port'], reqInfo['ip']);
+//    res.end();
+});
+// listen on port 443
+//serv.listen(8888); //, '0.0.0.0');
+
+
 http.createServer(function(request, response) {
     var info = url.parse(request.url);
+p(info);
     var reqInfoOrigin = {
         'host': info['hostname'],
         'ip': info['hostname'],

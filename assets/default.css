@@ -12,20 +12,43 @@
     padding-bottom: 4px;
     display: block;
     height: 30px;
-    overflow:hidden;
-    white-space:nowrap;
-    text-overflow:ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 
 #http_request
-, #http_response {
+, #http_response
+{
     min-height: 150px;
     max-height: 500px;
     overflow-y: scroll;
     overflow-wrap: break-word;
 }
 
+.table thead {
+    /*width: 100%;*/
+    /*table-layout: fixed;*/
+}
+.table tbody {
+    height: 200px;
+    /*width: 524px;*/
+    display: block;
+    overflow-y: scroll;
+}
+
+.table tbody td {
+    overflow-x: scroll;
+    overflow-y: hidden;
+    height: 30px;
+    min-width: 200px;
+    max-width: 400px;
+    display: inline-block;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
 
 .def_message {
     color: #cccccc;

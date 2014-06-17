@@ -5,9 +5,6 @@ var uniq = 0;
 // Message Receiver
 socket.on('chat message', function(msg) {
     var json = JSON.parse(msg);
-//    url = json['request']['url'];
-//    req = getRequestOrigin(json['request']);
-//    resp = getResponseOrigin(json['response']);
 
     logs[++uniq] = json;
     render(uniq);
@@ -15,70 +12,89 @@ socket.on('chat message', function(msg) {
 
 function render(id, is_append)
 {
-    json = logs[id];
-    url = json['request']['url'];
-    req = getRequestOrigin(json['request']);
-    resp = getResponseOrigin(json['response']);
+    var json = logs[id];
+    var request = json.request;
+    var response = json.response;
 
+    var req = request.reqInfo;
     if (typeof is_append == 'undefined') {
         is_append = true;
     }
 
+
     if (is_append) {
-        $('#request_info').append($('<li class="list-group-item font">').html('<a href="#" onclick="show_origin(' + id + '); return false;">' + url + '</a>'));
-        $('#request_info').scrollTop($('#request_info').prop('scrollHeight'));
+//        $('#request_info').append($('<li class="list-group-item font">').html('<a href="#" onclick="show_origin(' + id + '); return false;">' + url + '</a>'));
+
+        var row = '';
+        row+= '<tr>';
+        row+= '    <td><a href="#" onclick="show_origin(' + id + '); return false;">' + req.protocol + '://' + req.host + req.path + '</a></td>';
+        row+= '    <td>' + response.headers.status + '</td>';
+        row+= '    <td>' + response.headers['content-type'] + '</td>';
+        row+= '   <td>' + response.headers['content-length'] + '</td>';
+        row+= '</tr>';
+        $('#url_table').append(row);
+        //$('<li class="list-group-item font">').html('<a href="#" onclick="show_origin(' + id + '); return false;">' + url + '</a>'));
+
+        $('#url_table').scrollTop($('#url_table').prop('scrollHeight'));
     }
 
-    $('#http_request').html(req);
-    $('#http_response').html(resp, url);
+    $('#http_request').html(getRequestOrigin(request.reqInfo, request.headers, request.body));
+    $('#http_response').html(getResponseOrigin(response.headers, response.body));
 }
 
-function getRequestOrigin(obj)
+function getRequestOrigin(reqInfo, headers, body)
 {
     var line = [];
-    line.push(obj['method'] + ' ' +  obj['path'] + ' HTTP/' + obj['http_version']);
-    for (var k in obj['header']) {
-        line.push(k + ': ' + obj['header'][k]);
+    line.push(reqInfo.method + ' ' +  reqInfo.path + ' HTTP/' + reqInfo.httpVersion);
+    for (var k in headers) {
+        line.push(k + ': ' + headers[k]);
     }
     line.push('');
-    line.push(obj['body']);
+    line.push(body);
     line.push('');
 
-    if (obj['method'] == 'GET') {
+    if (reqInfo.method == 'GET') {
         params = '';
     } else {
-        params = " -X " + obj['method']  + " -d '" + obj['body'] + "'";
+        params = " -X " + reqInfo.method + " -d '" + body + "'";
     }
 
-    line.push('<blockquote class="font"> curl "' + obj['url'] + '" ' + params + '</blockquote>');
+    line.push('<blockquote class="font"> curl "' + (reqInfo.protocol + '://' + reqInfo.host + reqInfo.path) + '" ' + params + '</blockquote>');
     return line.join('<br />');
 }
 
-function getResponseOrigin(obj, req_obj)
+function getResponseOrigin(headers, body)
 {
     var line = [];
-    line.push('HTTP ' + obj['status_code'] + ' ' + getStatusText(obj['status_code']));
-    for (var k in obj['header']) {
-        line.push(k + ': ' + obj['header'][k]);
-
+    line.push('HTTP ' + headers.status + ' ' + getStatusText(headers.status));
+    for (var k in headers) {
+        line.push(k + ': ' + headers[k]);
         if (k == 'content-type') {
-
         }
     }
     line.push('');
 
-    if (obj['header']['content-type'].match(/^image\//g)) {
+    if (typeof headers['content-type'] == 'undefined') {
+        headers['content-type'] = '';
+    }
+
+    if (headers['content-type'].match(/^image\//g)) {
         line.push('<img src="' + url + '" />');
     } else {
-        body = obj['body'];
         if (typeof body == 'undefined') {
             body = '';
         }
-        body = '<xmp>' + body.replace(/\</g, '&lt;') + '</xmp>';
+//        body = '<xmp>' + body.replace(/\</g, '&lt;') + '</xmp>';
+//        body = body.replace(/(\\r\\n|\\n)/g, '\n');
         line.push(body);
     }
 
     return line.join('<br />');
+}
+
+function show_origin(id)
+{
+    render(id, false);
 }
 
 function getStatusText(code)
@@ -130,7 +146,3 @@ function getStatusText(code)
 }
 
 
-function show_origin(id)
-{
-    render(id, false);
-}
