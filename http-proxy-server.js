@@ -1,10 +1,16 @@
 var http = require('http');
 var net = require('net');
 var socket = require('socket.io-client')('http://localhost:8080');
+var print_r = require('print_r').print_r;
+var url = require('url');
+var fs = require('fs');
 
 var debugging = 1;
 
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
+
+var localHosts = require(__dirname + '/hosts.json');
+var HOSTS = localHosts['cashslide-test'];
 
 // SOCKET.IO
 socket.on('connect', function(){
@@ -41,9 +47,6 @@ function httpUserRequest(userRequest, userResponse) {
     var httpVersion = userRequest['httpVersion'];
     var hostport = getHostPortFromString(userRequest.headers['host'], 80);
 
-    userRequest._info = {};
-    userResponse._info = {};
-
     // have to extract the path from the requested URL
     var path = userRequest.url;
     result = /^[a-zA-Z]+:\/\/[^\/]+(\/.*)?$/.exec(userRequest.url);
@@ -64,6 +67,29 @@ function httpUserRequest(userRequest, userResponse) {
         'auth': userRequest.auth,
         'headers': userRequest.headers
     };
+
+    try {
+        userRequest._info = {};
+        userResponse._info = {};
+
+        //localHosts에 매칭되는 도메인:포트가 있으면 목적지 변경!
+        var srcHostPort = options.host + ':' + options.port
+        if (targetHost = HOSTS[srcHostPort]) {
+            var tmp = url.parse('http://' + targetHost);
+            options.host_origin = srcHostPort;
+            options.host = tmp['hostname'];
+            options.port = tmp['port'];
+            options.headers.host = tmp['host'];
+
+            console.log('---------');
+            console.log(print_r(options));
+        }
+    } catch(e) {
+        console.log(e.message);
+    }
+//    delete request.headers['accept-encoding'];
+    console.log(print_r(options));
+
 
     console.log(">>> " + JSON.stringify(options));
 //    con userRequest.httpVersion,

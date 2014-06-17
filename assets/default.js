@@ -3,12 +3,24 @@ var logs = {};
 var uniq = 0;
 
 // Message Receiver
-socket.on('chat message', function(msg) {
+socket.on('chat message', function(msg)
+{
     var json = JSON.parse(msg);
 
     logs[++uniq] = json;
     render(uniq);
 });
+
+function getUrl(req)
+{
+    var host = req.host_origin;
+    if (typeof host == 'undefined') {
+        host = req.host + ':' + req.port;
+    }
+    host = host.replace(/:(80|443)$/, '');
+
+    return req.protocol + '://' + host + req.path
+}
 
 function render(id, is_append)
 {
@@ -16,18 +28,14 @@ function render(id, is_append)
     var request = json.request;
     var response = json.response;
 
-    var req = request.reqInfo;
     if (typeof is_append == 'undefined') {
         is_append = true;
     }
 
-
     if (is_append) {
-//        $('#request_info').append($('<li class="list-group-item font">').html('<a href="#" onclick="show_origin(' + id + '); return false;">' + url + '</a>'));
-
         var row = '';
         row+= '<tr>';
-        row+= '    <td><a href="#" onclick="show_origin(' + id + '); return false;">' + req.protocol + '://' + req.host + req.path + '</a></td>';
+        row+= '    <td><a href="#" onclick="show_origin(' + id + '); return false;">' + getUrl(request.reqInfo) + '</a></td>';
         row+= '    <td>' + response.headers.status + '</td>';
         row+= '    <td>' + response.headers['content-type'] + '</td>';
         row+= '   <td>' + response.headers['content-length'] + '</td>';
@@ -59,7 +67,7 @@ function getRequestOrigin(reqInfo, headers, body)
         params = " -X " + reqInfo.method + " -d '" + body + "'";
     }
 
-    line.push('<blockquote class="font"> curl "' + (reqInfo.protocol + '://' + reqInfo.host + reqInfo.path) + '" ' + params + '</blockquote>');
+    line.push('<blockquote class="font"> curl "' + getUrl(reqInfo) + '" ' + params + '</blockquote>');
     return line.join('<br />');
 }
 

@@ -1,0 +1,7 @@
+{
+    "default": {
+    },
+    "cashslide-qa": {
+        "cashslide.co.kr:80": "dev.fronto.co:80"
+    }
+}
