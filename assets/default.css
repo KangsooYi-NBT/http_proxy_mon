@@ -27,25 +27,24 @@
     overflow-wrap: break-word;
 }
 
-.table thead {
-    /*width: 100%;*/
-    /*table-layout: fixed;*/
-}
 .table tbody {
     height: 200px;
     /*width: 524px;*/
     display: block;
     overflow-y: scroll;
 }
-
 .table tbody td {
-    overflow-x: scroll;
-    overflow-y: hidden;
-    height: 30px;
     min-width: 200px;
-    max-width: 400px;
-    display: inline-block;
+}
+.table tbody td.alt {
+    width: 50%;
+}
 
+.table tbody td a {
+    display: inline-block;
+    overflow: hidden;
+    width: 600px;
+    max-width: 80%;
     white-space: nowrap;
     text-overflow: ellipsis;
 }

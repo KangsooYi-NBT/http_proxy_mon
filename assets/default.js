@@ -47,18 +47,31 @@ function render(id, is_append)
     }
 
     $('#http_request').html(getRequestOrigin(request.reqInfo, request.headers, request.body));
-    $('#http_response').html(getResponseOrigin(response.headers, response.body));
+    $('#http_response').html(getResponseOrigin(request.reqInfo, response.headers, response.body));
 }
 
 function getRequestOrigin(reqInfo, headers, body)
-{
-    var line = [];
+{ var line = [];
     line.push(reqInfo.method + ' ' +  reqInfo.path + ' HTTP/' + reqInfo.httpVersion);
     for (var k in headers) {
-        line.push(k + ': ' + headers[k]);
+        if (k == 'x-pmon-server-forwarded') {
+            var v = headers[k];
+            var vs = v.split(',');
+
+            v = '';
+            for (var i in vs) {
+                if (i > 0 ) {
+                    v+= '<span class="glyphicon glyphicon-chevron-right"></span> ';
+                }
+                v+= '<span class="badge">' + vs[i] + '</span> ';
+            }
+            line.push(k + ': ' + v);
+        } else {
+            line.push(k + ': ' + headers[k]);
+        }
     }
     line.push('');
-    line.push(body);
+    line.push('<div class="alert alert-success">' + body + '</div>');
     line.push('');
 
     if (reqInfo.method == 'GET') {
@@ -71,14 +84,15 @@ function getRequestOrigin(reqInfo, headers, body)
     return line.join('<br />');
 }
 
-function getResponseOrigin(headers, body)
+function getResponseOrigin(reqInfo, headers, body)
 {
     var line = [];
     line.push('HTTP ' + headers.status + ' ' + getStatusText(headers.status));
     for (var k in headers) {
-        line.push(k + ': ' + headers[k]);
-        if (k == 'content-type') {
+        if (k == 'status') {
+            continue;
         }
+        line.push(k + ': ' + headers[k]);
     }
     line.push('');
 
@@ -86,15 +100,14 @@ function getResponseOrigin(headers, body)
         headers['content-type'] = '';
     }
 
-    if (headers['content-type'].match(/^image\//g)) {
-        line.push('<img src="' + url + '" />');
+    if (headers['content-type'].match(/^image\//g) || reqInfo.path.match('/\.(jpg|gif|png)$')) {
+        line.push('<img src="' + getUrl(reqInfo) + '" />');
     } else {
         if (typeof body == 'undefined') {
             body = '';
         }
-//        body = '<xmp>' + body.replace(/\</g, '&lt;') + '</xmp>';
-//        body = body.replace(/(\\r\\n|\\n)/g, '\n');
-        line.push(body);
+        body = '<xmp>' + body + '</xmp>';
+        line.push('<div class="alert alert-danger">' + body + '</div>');
     }
 
     return line.join('<br />');

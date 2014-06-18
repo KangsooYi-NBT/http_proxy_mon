@@ -1,3 +1,9 @@
+/**
+ * HTTP/HTTPS Proxy
+ *
+ * @see http://newspaint.wordpress.com/2012/11/05/node-js-http-and-https-proxy/
+ */
+
 var http = require('http');
 var net = require('net');
 var socket = require('socket.io-client')('http://localhost:8080');
@@ -12,10 +18,22 @@ var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
 var localHosts = require(__dirname + '/hosts.json');
 var HOSTS = localHosts['cashslide-test'];
 
+function p(obj)
+{
+    return console.log(print_r(obj));
+    console.log("{");
+    for (var k in obj) {
+        console.log("    '%s': '%s',", k, obj[k])
+    }
+    console.log("}\n");
+}
+
 // SOCKET.IO
 socket.on('connect', function(){
     socket.on('chat message', function(msg){
-        console.log('message: ' + msg);
+        if (debugging) {
+            console.log('message: ' + msg);
+        }
         //socket.emit('chat message', msg);
     });
 
@@ -76,23 +94,19 @@ function httpUserRequest(userRequest, userResponse) {
         var srcHostPort = options.host + ':' + options.port
         if (targetHost = HOSTS[srcHostPort]) {
             var tmp = url.parse('http://' + targetHost);
-            options.host_origin = srcHostPort;
             options.host = tmp['hostname'];
             options.port = tmp['port'];
             options.headers.host = tmp['host'];
+            options.host_origin = srcHostPort;
 
-            console.log('---------');
-            console.log(print_r(options));
+            options.headers['host'] = options.host_origin; // options.host_origin + ', ' + options.host + ':' + options.port;
+            options.headers['x-pmon-server-forwarded'] = options.host_origin + ', ' + options.host + ':' + options.port;
         }
     } catch(e) {
-        console.log(e.message);
+        console.log("Exception: " + e.message);
     }
-//    delete request.headers['accept-encoding'];
-    console.log(print_r(options));
+    delete options.headers['accept-encoding'];
 
-
-    console.log(">>> " + JSON.stringify(options));
-//    con userRequest.httpVersion,
     userRequest._info.reqInfo = {};
     for (var k in options) {
         if (k == 'headers') {
@@ -109,16 +123,22 @@ function httpUserRequest(userRequest, userResponse) {
         options,
         function (proxyResponse) {
             userResponse.writeHead(proxyResponse.statusCode, proxyResponse.headers);
-            console.log("<<< " + JSON.stringify(proxyResponse.statusCode));
-            console.log("<<< " + JSON.stringify(proxyResponse.headers));
             userResponse._info.headers = proxyResponse.headers;
+
+            // GET Method로 호출 시 Response에 status 가 없음
+            if (proxyRequest.method == 'GET') {
+                userResponse._info.headers.status = proxyResponse.statusCode;
+            }
 
             proxyResponse.on('data', function (chunk) {
                     if (typeof userResponse._info.body == 'undefined') {
                         userResponse._info.body = '';
                     }
                     userResponse._info.body += chunk;
-                    console.log("<<< " + chunk);
+
+                    if (debugging) {
+                        console.log("<<< " + chunk);
+                    }
                     userResponse.write(chunk);
                 }
             );
@@ -126,13 +146,6 @@ function httpUserRequest(userRequest, userResponse) {
             proxyResponse.on('end',
                 function () {
                     userResponse.end();
-
-                    console.log("<<< end.");
-                    console.log("---------------- ");
-
-                    console.log(JSON.stringify(userRequest._info));
-                    console.log(JSON.stringify(userResponse._info));
-                    console.log("================ ");
 
                     var msg = {
                         'request': userRequest._info,
@@ -154,7 +167,9 @@ function httpUserRequest(userRequest, userResponse) {
     );
 
     userRequest.addListener('data', function (chunk) {
-            console.log(">>> " + chunk);
+            if (debugging) {
+                console.log(">>> " + chunk);
+            }
             if (typeof userRequest._info.body == 'undefined') {
                 userRequest._info.body = '';
             }
@@ -164,7 +179,6 @@ function httpUserRequest(userRequest, userResponse) {
     );
 
     userRequest.addListener('end', function () {
-            console.log(">>> end.");
             proxyRequest.end();
         }
     );
@@ -187,23 +201,21 @@ function main() {
         }
     }
 
-    if (debugging) {
-        console.log('server listening on port ' + port);
-    }
+    console.log('server listening on port ' + port);
 
     // start HTTP server with custom request handler callback function
     var server = http.createServer(httpUserRequest).listen(port);
 
     server.addListener('checkContinue', function (request, response){
-        console.log(request);
         response.writeContinue();
     });
+
     // add handler for HTTPS (which issues a CONNECT to the proxy)
     server.addListener(
         'connect',
         function (request, socketRequest, bodyhead) {
-            var url = request['url'];
-            var httpVersion = request['httpVersion'];
+            var url = request.url;
+            var httpVersion = request.httpVersion;
             var hostport = getHostPortFromString(url, 443);
 
             // set up TCP connection
@@ -212,8 +224,7 @@ function main() {
             proxySocket.connect(
                 parseInt(hostport[1]), hostport[0],
                 function () {
-
-                    console.log("ProxySocket: " + hostport[1] + " | " + hostport[0]);
+                    console.log("HTTPS ProxySocket: " + hostport[1] + " | " + hostport[0]);
                     proxySocket.write(bodyhead);
 
                     // tell the caller the connection was successfully established
