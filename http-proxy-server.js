@@ -11,8 +11,7 @@ var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
 
-var debugging = 1;
-
+var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
 
 var localHosts = require(__dirname + '/hosts.json');
@@ -103,7 +102,7 @@ function httpUserRequest(userRequest, userResponse) {
             options.headers['x-pmon-server-forwarded'] = options.host_origin + ', ' + options.host + ':' + options.port;
         }
     } catch(e) {
-        console.log("Exception: " + e.message);
+        //console.log("Exception: " + e.message);
     }
     delete options.headers['accept-encoding'];
 
@@ -134,7 +133,13 @@ function httpUserRequest(userRequest, userResponse) {
                     if (typeof userResponse._info.body == 'undefined') {
                         userResponse._info.body = '';
                     }
-                    userResponse._info.body += chunk;
+                    userResponse['content-type']
+
+                    if (userResponse._info.headers['content-type'].match(/^image\//g) || userRequest._info.reqInfo.path.toLowerCase().match('/\.(jpg|gif|png)$')) {
+                        //
+                    } else {
+                        userResponse._info.body += chunk;
+                    }
 
                     if (debugging) {
                         console.log("<<< " + chunk);
@@ -146,6 +151,10 @@ function httpUserRequest(userRequest, userResponse) {
             proxyResponse.on('end',
                 function () {
                     userResponse.end();
+
+                    if (typeof userResponse._info.headers['content-length'] =='undefined') {
+                        userResponse._info.headers['content-length'] = userResponse._info.body.length;
+                    }
 
                     var msg = {
                         'request': userRequest._info,

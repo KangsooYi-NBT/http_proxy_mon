@@ -2,12 +2,24 @@ var socket = io();
 var logs = {};
 var uniq = 0;
 
+Number.prototype.numberFormat = function(decimals, dec_point, thousands_sep) {
+    dec_point = typeof dec_point !== 'undefined' ? dec_point : '.';
+    thousands_sep = typeof thousands_sep !== 'undefined' ? thousands_sep : ',';
+
+    var parts = this.toFixed(decimals).toString().split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousands_sep);
+
+    return parts.join(dec_point);
+}
+
+$(document).ready(function() {
+    localStorage.clear();
+});
+
 // Message Receiver
 socket.on('chat message', function(msg)
 {
-    var json = JSON.parse(msg);
-
-    logs[++uniq] = json;
+    localStorage.setItem(++uniq, msg);
     render(uniq);
 });
 
@@ -24,9 +36,15 @@ function getUrl(req)
 
 function render(id, is_append)
 {
-    var json = logs[id];
+    var json = JSON.parse(localStorage.getItem(id));
     var request = json.request;
     var response = json.response;
+
+    if ($('#hidden_image').is(':checked')) {
+        if (response.headers['content-type'].match(/^image\//g) || request.reqInfo.path.toLowerCase().match('/\.(jpg|gif|png)$')) {
+            return '';
+        }
+    }
 
     if (typeof is_append == 'undefined') {
         is_append = true;
@@ -38,7 +56,7 @@ function render(id, is_append)
         row+= '    <td><a href="#" onclick="show_origin(' + id + '); return false;">' + getUrl(request.reqInfo) + '</a></td>';
         row+= '    <td>' + response.headers.status + '</td>';
         row+= '    <td>' + response.headers['content-type'] + '</td>';
-        row+= '   <td>' + response.headers['content-length'] + '</td>';
+        row+= '    <td class="text-right">' + parseInt(response.headers['content-length']).numberFormat(0) + ' </td>';
         row+= '</tr>';
         $('#url_table').append(row);
         //$('<li class="list-group-item font">').html('<a href="#" onclick="show_origin(' + id + '); return false;">' + url + '</a>'));
@@ -100,7 +118,7 @@ function getResponseOrigin(reqInfo, headers, body)
         headers['content-type'] = '';
     }
 
-    if (headers['content-type'].match(/^image\//g) || reqInfo.path.match('/\.(jpg|gif|png)$')) {
+    if (headers['content-type'].match(/^image\//g) || reqInfo.path.toLowerCase().match('/\.(jpg|gif|png)$')) {
         line.push('<img src="' + getUrl(reqInfo) + '" />');
     } else {
         if (typeof body == 'undefined') {

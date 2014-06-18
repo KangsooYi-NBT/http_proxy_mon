@@ -2,20 +2,20 @@
     font-size: 10pt;
 }
 
-.list-group {
-    height: 200px;
-    overflow-y: scroll;
-}
+/*.list-group {*/
+    /*height: 200px;*/
+    /*overflow-y: scroll;*/
+/*}*/
 
-.list-group-item {
-    padding-top: 4px;
-    padding-bottom: 4px;
-    display: block;
-    height: 30px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
+/*.list-group-item {*/
+    /*padding-top: 4px;*/
+    /*padding-bottom: 4px;*/
+    /*display: block;*/
+    /*height: 30px;*/
+    /*overflow: hidden;*/
+    /*white-space: nowrap;*/
+    /*text-overflow: ellipsis;*/
+/*}*/
 
 
 #http_request
@@ -27,24 +27,33 @@
     overflow-wrap: break-word;
 }
 
+.table {
+    height: 200px;
+    overflow: scroll;
+    table-layout: fixed;
+    display: block;
+}
+
 .table tbody {
     height: 200px;
-    /*width: 524px;*/
     display: block;
     overflow-y: scroll;
 }
+
 .table tbody td {
-    min-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 .table tbody td.alt {
     width: 50%;
 }
 
 .table tbody td a {
+    max-width: 600px;
     display: inline-block;
     overflow: hidden;
-    width: 600px;
-    max-width: 80%;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
@@ -53,3 +62,5 @@
     color: #cccccc;
     font-style: italic;
 }
+
+
