@@ -10,12 +10,12 @@ var socket = require('socket.io-client')('http://localhost:8080');
 var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
+var Iconv  = require('iconv').Iconv;
+var iconv = new Iconv('EUC-KR', 'UTF-8//TRANSLIT//IGNORE');
 
 var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
-
-var localHosts = require(__dirname + '/hosts.json');
-var HOSTS = localHosts['cashslide-test'];
+var HOSTS = [];
 
 function p(obj)
 {
@@ -25,6 +25,11 @@ function p(obj)
         console.log("    '%s': '%s',", k, obj[k])
     }
     console.log("}\n");
+}
+
+function deepCopy(x)
+{
+    return JSON.parse(JSON.stringify(x));
 }
 
 // SOCKET.IO
@@ -61,6 +66,8 @@ function getHostPortFromString(hostString, defaultPort) {
 
 // handle a HTTP proxy request
 function httpUserRequest(userRequest, userResponse) {
+    userRequest['httpVersion'] = '1.0';
+
     var httpVersion = userRequest['httpVersion'];
     var hostport = getHostPortFromString(userRequest.headers['host'], 80);
 
@@ -105,6 +112,7 @@ function httpUserRequest(userRequest, userResponse) {
         //console.log("Exception: " + e.message);
     }
     delete options.headers['accept-encoding'];
+//    options.headers['accept-encoding'] = 'gzip';
 
     userRequest._info.reqInfo = {};
     for (var k in options) {
@@ -133,12 +141,18 @@ function httpUserRequest(userRequest, userResponse) {
                     if (typeof userResponse._info.body == 'undefined') {
                         userResponse._info.body = '';
                     }
-                    userResponse['content-type']
 
-                    if (userResponse._info.headers['content-type'].match(/^image\//g) || userRequest._info.reqInfo.path.toLowerCase().match('/\.(jpg|gif|png)$')) {
+                    if (userResponse._info.headers['content-type'].match(/^image\//g) || userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
                         //
                     } else {
-                        userResponse._info.body += chunk;
+//                        if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
+//                            chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
+//                            userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
+//
+//                            userResponse._info.body += iconv.convert(chunk).toString('UTF-8');
+//                        } else {
+                            userResponse._info.body += chunk;
+//                        }
                     }
 
                     if (debugging) {
@@ -152,8 +166,17 @@ function httpUserRequest(userRequest, userResponse) {
                 function () {
                     userResponse.end();
 
+                    // Content-Encoding
+                    if (userResponse._info.headers['content-encoding'] == 'gzip') {
+                        //
+                    }
+
                     if (typeof userResponse._info.headers['content-length'] =='undefined') {
-                        userResponse._info.headers['content-length'] = userResponse._info.body.length;
+                        try {
+                            userResponse._info.headers['content-length'] = userResponse._info.body.length;
+                        } catch (e) {
+                            userResponse._info.headers['content-length'] = -1;
+                        }
                     }
 
                     var msg = {
@@ -195,6 +218,7 @@ function httpUserRequest(userRequest, userResponse) {
 
 function main() {
     var port = 8888; // default port if none on command line
+    var caseId = 'default';
 
     // check for any command line arguments
     for (var argn = 2; argn < process.argv.length; argn++) {
@@ -208,9 +232,18 @@ function main() {
             debugging = 1;
             continue;
         }
+
+        if (process.argv[argn] === '-c') {
+            caseId = process.argv[argn + 1].toString();
+            argn++;
+            continue;
+        }
     }
 
+    refreshLocalHosts(caseId);
+
     console.log('server listening on port ' + port);
+    console.log('localHostsCaseId: ' + caseId);
 
     // start HTTP server with custom request handler callback function
     var server = http.createServer(httpUserRequest).listen(port);
@@ -273,6 +306,16 @@ function main() {
             );
         }
     ); // HTTPS connect listener
+}
+
+function refreshLocalHosts(caseId)
+{
+    try {
+        var localHosts = require(__dirname + '/hosts.json');
+        HOSTS = localHosts[caseId];
+    } catch (e) {
+        console.log(e.message);
+    }
 }
 
 main();

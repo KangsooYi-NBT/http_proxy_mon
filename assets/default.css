@@ -28,31 +28,39 @@
 }
 
 .table {
-    height: 200px;
-    overflow: scroll;
-    table-layout: fixed;
-    display: block;
+    height: 640px;
+    position: relative;
 }
 
+.table thead {
+    width: 100%;
+    height: 30px;
+    display: block;
+    position: relative;
+}
 .table tbody {
-    height: 200px;
+    width: 100%;
+    height: 95%;
     display: block;
     overflow-y: scroll;
+    position: relative;
 }
 
 .table tbody td {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: 80px;
 }
 
 .table tbody td.alt {
-    width: 50%;
+    width: 800px;
 }
 
 .table tbody td a {
-    max-width: 600px;
-    display: inline-block;
+    min-width: 400px;
+    max-width: 800px;
+    display: block;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -62,5 +70,4 @@
     color: #cccccc;
     font-style: italic;
 }
-
 

@@ -41,7 +41,7 @@ function render(id, is_append)
     var response = json.response;
 
     if ($('#hidden_image').is(':checked')) {
-        if (response.headers['content-type'].match(/^image\//g) || request.reqInfo.path.toLowerCase().match('/\.(jpg|gif|png)$')) {
+        if (response.headers['content-type'].match(/^image\//g) || request.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
             return '';
         }
     }
@@ -51,9 +51,18 @@ function render(id, is_append)
     }
 
     if (is_append) {
+        var isViaProxy = false;
+        if (request.headers['x-pmon-server-forwarded']) {
+            isViaProxy = true;
+        }
+
         var row = '';
-        row+= '<tr>';
-        row+= '    <td><a href="#" onclick="show_origin(' + id + '); return false;">' + getUrl(request.reqInfo) + '</a></td>';
+        if (isViaProxy) {
+            row+= '<tr class="info">';
+        } else {
+            row+= '<tr style="text-decoration: line-through;">';
+        }
+        row+= '    <td class="alt"><a href="#" onclick="show_origin(' + id + '); return false;">' + getUrl(request.reqInfo) + '</a></td>';
         row+= '    <td>' + response.headers.status + '</td>';
         row+= '    <td>' + response.headers['content-type'] + '</td>';
         row+= '    <td class="text-right">' + parseInt(response.headers['content-length']).numberFormat(0) + ' </td>';
@@ -61,11 +70,16 @@ function render(id, is_append)
         $('#url_table').append(row);
         //$('<li class="list-group-item font">').html('<a href="#" onclick="show_origin(' + id + '); return false;">' + url + '</a>'));
 
-        $('#url_table').scrollTop($('#url_table').prop('scrollHeight'));
+        if ($('#http_log_refresh').is(':checked')) {
+            $('#url_table').scrollTop($('#url_table').prop('scrollHeight'));
+        }
     }
 
-    $('#http_request').html(getRequestOrigin(request.reqInfo, request.headers, request.body));
-    $('#http_response').html(getResponseOrigin(request.reqInfo, response.headers, response.body));
+    // HTTP통신 원문 자동 갱신
+    if ($('#http_log_refresh').is(':checked') || is_append != true) {
+        $('#http_request').html(getRequestOrigin(request.reqInfo, request.headers, request.body));
+        $('#http_response').html(getResponseOrigin(request.reqInfo, response.headers, response.body));
+    }
 }
 
 function getRequestOrigin(reqInfo, headers, body)
@@ -88,9 +102,12 @@ function getRequestOrigin(reqInfo, headers, body)
             line.push(k + ': ' + headers[k]);
         }
     }
+
     line.push('');
-    line.push('<div class="alert alert-success">' + body + '</div>');
-    line.push('');
+    if (typeof body != 'undefined') {
+        line.push('<div class="alert alert-success">' + body + '</div>');
+        line.push('');
+    }
 
     if (reqInfo.method == 'GET') {
         params = '';
@@ -118,7 +135,7 @@ function getResponseOrigin(reqInfo, headers, body)
         headers['content-type'] = '';
     }
 
-    if (headers['content-type'].match(/^image\//g) || reqInfo.path.toLowerCase().match('/\.(jpg|gif|png)$')) {
+    if (headers['content-type'].match(/^image\//g) || reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
         line.push('<img src="' + getUrl(reqInfo) + '" />');
     } else {
         if (typeof body == 'undefined') {
@@ -133,6 +150,7 @@ function getResponseOrigin(reqInfo, headers, body)
 
 function show_origin(id)
 {
+    $('#http_log_refresh').prop('checked', false);
     render(id, false);
 }
 
