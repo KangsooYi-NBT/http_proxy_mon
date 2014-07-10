@@ -73,6 +73,13 @@ function render(id, is_append)
         if ($('#http_log_refresh').is(':checked')) {
             $('#url_table').scrollTop($('#url_table').prop('scrollHeight'));
         }
+
+        if (request.reqInfo.path == '/get_user_account') {
+            var cash = JSON.parse(response.body); $('#ui_current_save').text(cash.current_save);
+            $('#ui_whole_save').text(cash.whole_save);
+            $('#ui_user_id').text(cash.user_id);
+            $('#ui_updated_at').text(cash.updated_at);
+        }
     }
 
     // HTTP통신 원문 자동 갱신
@@ -83,7 +90,8 @@ function render(id, is_append)
 }
 
 function getRequestOrigin(reqInfo, headers, body)
-{ var line = [];
+{
+    var line = [];
     line.push(reqInfo.method + ' ' +  reqInfo.path + ' HTTP/' + reqInfo.httpVersion);
     for (var k in headers) {
         if (k == 'x-pmon-server-forwarded') {
@@ -105,6 +113,8 @@ function getRequestOrigin(reqInfo, headers, body)
 
     line.push('');
     if (typeof body != 'undefined') {
+        body = body.replace(/&/g, '&amp;');
+
         line.push('<div class="alert alert-success">' + body + '</div>');
         line.push('');
     }

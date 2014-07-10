@@ -75,9 +75,13 @@ function httpUserRequest(userRequest, userResponse) {
     var path = userRequest.url;
     result = /^[a-zA-Z]+:\/\/[^\/]+(\/.*)?$/.exec(userRequest.url);
     if (result) {
-        if (result[1].length > 0) {
-            path = result[1];
-        } else {
+        try {
+            if (result[1].length > 0) {
+                path = result[1];
+            } else {
+                path = "/";
+            }
+        } catch (e) {
             path = "/";
         }
     }
@@ -171,12 +175,12 @@ function httpUserRequest(userRequest, userResponse) {
                         //
                     }
 
-                    if (typeof userResponse._info.headers['content-length'] =='undefined') {
-                        try {
+                    try {
+                        if (typeof userResponse._info.headers['content-length'] =='undefined') {
                             userResponse._info.headers['content-length'] = userResponse._info.body.length;
-                        } catch (e) {
-                            userResponse._info.headers['content-length'] = -1;
                         }
+                    } catch (e) {
+                        userResponse._info.headers['content-length'] = -1;
                     }
 
                     var msg = {
