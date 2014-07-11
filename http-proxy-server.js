@@ -129,6 +129,7 @@ function httpUserRequest(userRequest, userResponse) {
     userRequest._info.reqInfo.protocol = 'http';
     userRequest._info.headers = options['headers'];
 
+    console.log("HTTP ProxySocket: " + hostport[1] + " | " + hostport[0]);
 
     var proxyRequest = http.request(
         options,
@@ -146,7 +147,8 @@ function httpUserRequest(userRequest, userResponse) {
                         userResponse._info.body = '';
                     }
 
-                    if (userResponse._info.headers['content-type'].match(/^image\//g) || userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
+                    if (getArrayValue(userResponse._info.headers, 'content-type').match(/^image\//g) ||
+                        userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
                         //
                     } else {
 //                        if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
@@ -171,12 +173,12 @@ function httpUserRequest(userRequest, userResponse) {
                     userResponse.end();
 
                     // Content-Encoding
-                    if (userResponse._info.headers['content-encoding'] == 'gzip') {
+                    if (getArrayValue(userResponse._info.headers, 'content-encoding') == 'gzip') {
                         //
                     }
 
                     try {
-                        if (typeof userResponse._info.headers['content-length'] =='undefined') {
+                        if (getArrayValue(userResponse._info.headers, 'content-length') == '') {
                             userResponse._info.headers['content-length'] = userResponse._info.body.length;
                         }
                     } catch (e) {
@@ -320,6 +322,14 @@ function refreshLocalHosts(caseId)
     } catch (e) {
         console.log(e.message);
     }
+}
+
+function getArrayValue(arr, key)
+{
+    if (typeof arr[key] == 'undefined') {
+        return '';
+    }
+    return  arr[key];
 }
 
 main();
