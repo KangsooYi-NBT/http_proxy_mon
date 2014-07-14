@@ -23,9 +23,16 @@ socket.on('chat message', function(msg)
     render(uniq);
 });
 
-function getUrl(req)
+function getUrl(req, is_real_domain)
 {
     var host = req.host_origin;
+    if (is_real_domain == true) {
+        host = req.host;
+        if (req.port != 80) {
+            host+= ':' + req.port;
+        }
+    }
+
     if (typeof host == 'undefined') {
         host = req.host + ':' + req.port;
     }
@@ -125,7 +132,7 @@ function getRequestOrigin(reqInfo, headers, body)
         params = " -X " + reqInfo.method + " -d '" + body + "'";
     }
 
-    line.push('<blockquote class="font"> curl "' + getUrl(reqInfo) + '" ' + params + '</blockquote>');
+    line.push('<blockquote class="font"> curl "' + getUrl(reqInfo, true) + '" ' + params + '</blockquote>');
     return line.join('<br />');
 }
 
