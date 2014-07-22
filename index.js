@@ -1,6 +1,21 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var port = 8080;
+if (p = getArgValue('-p')) {
+    port = p;
+}
+
+function getArgValue(arg_name)
+{
+    for (var argn = 2; argn < process.argv.length; argn++) {
+        if (process.argv[argn] === arg_name) {
+            return parseInt(process.argv[argn + 1]);
+        }
+        argn++;
+    }
+    return '';
+}
 
 app.get('/', function(req, res){
     res.sendfile('index.html');
@@ -41,6 +56,6 @@ io.on('connection', function(socket){
     });
 });
 
-http.listen(8080, function(){
-    console.log('listening on *:8080');
+http.listen(port, function(){
+    console.log('HTTP-Mon listening on *:' + port);
 });

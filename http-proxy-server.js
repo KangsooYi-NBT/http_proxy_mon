@@ -4,9 +4,14 @@
  * @see http://newspaint.wordpress.com/2012/11/05/node-js-http-and-https-proxy/
  */
 
+var index_port = getArgValue('-pmon');
+if (index_port == '') {
+    index_port = 8080;
+}
+
 var http = require('http');
 var net = require('net');
-var socket = require('socket.io-client')('http://localhost:8080');
+var socket = require('socket.io-client')('http://localhost:' + index_port);
 var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
@@ -222,6 +227,17 @@ function httpUserRequest(userRequest, userResponse) {
     );
 }
 
+function getArgValue(arg_name)
+{
+    for (var argn = 2; argn < process.argv.length; argn++) {
+        if (process.argv[argn] === arg_name) {
+            return parseInt(process.argv[argn + 1]);
+        }
+        argn++;
+    }
+    return '';
+}
+
 function main() {
     var port = 8888; // default port if none on command line
     var caseId = 'default';
@@ -248,7 +264,8 @@ function main() {
 
     refreshLocalHosts(caseId);
 
-    console.log('server listening on port ' + port);
+    console.log('HTTP-Proxy listening on port ' + port);
+    console.log('HTTP-Mon sending on port ' + index_port);
     console.log('localHostsCaseId: ' + caseId);
 
     // start HTTP server with custom request handler callback function
