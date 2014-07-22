@@ -2,8 +2,12 @@
   
   * $ cd {APP_ROOT}
   * $ npm install
-  * $ node index.js &
-  * $ node http-proxy-server.js -p 8888 -c "default" &
+  * 
+  * # <옵션> 웹브라우저로 HTTP Reqeust/Response 모니터링용.
+  * $ node index.js -p 8080 &
+  * 
+  * # HTTP Proxy Server. [ -p = HTTP Proxy Server Port, -pmon = HTTP Web Port, -c = hosts.json에 정의한 Proxy GroupID ]
+  * $ node http-proxy-server.js -p 8888 -c "default" -pmon 8080 &
 
 hosts.json:
 
