@@ -16,7 +16,7 @@ var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
 var Iconv  = require('iconv').Iconv;
-var iconv = new Iconv('EUC-KR', 'UTF-8//TRANSLIT//IGNORE');
+var euckr2utf8 = new Iconv('EUC-KR', 'UTF-8//TRANSLIT//IGNORE');
 
 var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
@@ -71,7 +71,7 @@ function getHostPortFromString(hostString, defaultPort) {
 
 // handle a HTTP proxy request
 function httpUserRequest(userRequest, userResponse) {
-    userRequest['httpVersion'] = '1.0';
+    userRequest['httpVersion'] = '1.1';
 
     var httpVersion = userRequest['httpVersion'];
     var hostport = getHostPortFromString(userRequest.headers['host'], 80);
@@ -156,14 +156,13 @@ function httpUserRequest(userRequest, userResponse) {
                         userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
                         //
                     } else {
-//                        if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
-//                            chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
-//                            userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
-//
-//                            userResponse._info.body += iconv.convert(chunk).toString('UTF-8');
-//                        } else {
+                        if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
+                            chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
+                            userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
+                            userResponse._info.body += euckr2utf8.convert(chunk);
+                        } else {
                             userResponse._info.body += chunk;
-//                        }
+                        }
                     }
 
                     if (debugging) {

@@ -62,6 +62,10 @@ function render(id, is_append)
         if (request.headers['x-pmon-server-forwarded']) {
             isViaProxy = true;
         }
+        var status = response.headers.status;
+        if (status == null) {
+            status = 200;
+        }
 
         var row = '';
         if (isViaProxy) {
@@ -70,7 +74,7 @@ function render(id, is_append)
             row+= '<tr style="text-decoration: line-through;">';
         }
         row+= '    <td class="alt"><a href="#" onclick="show_origin(' + id + '); return false;">' + getUrl(request.reqInfo) + '</a></td>';
-        row+= '    <td>' + response.headers.status + '</td>';
+        row+= '    <td>' + status + '</td>';
         row+= '    <td>' + response.headers['content-type'] + '</td>';
         row+= '    <td class="text-right">' + parseInt(response.headers['content-length']).numberFormat(0) + ' </td>';
         row+= '</tr>';
@@ -139,7 +143,12 @@ function getRequestOrigin(reqInfo, headers, body)
 function getResponseOrigin(reqInfo, headers, body)
 {
     var line = [];
-    line.push('HTTP ' + headers.status + ' ' + getStatusText(headers.status));
+    var status = headers.status;
+    if (status == null) {
+        status = 200;
+    }
+
+    line.push('HTTP ' + status + ' ' + getStatusText(status));
     for (var k in headers) {
         if (k == 'status') {
             continue;

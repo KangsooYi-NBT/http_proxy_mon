@@ -1,6 +1,7 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var debug = false
 var port = 8080;
 if (p = getArgValue('-p')) {
     port = p;
@@ -17,6 +18,13 @@ function getArgValue(arg_name)
     return '';
 }
 
+function console_log(str)
+{
+    if (debug) {
+        console.log(str);
+    }
+}
+
 app.get('/', function(req, res){
     res.sendfile('index.html');
 });
@@ -27,32 +35,27 @@ app.get('/assets/default.js', function(req, res){
 
 app.get('/assets/default.css', function(req, res){
     res.sendfile('assets/default.css');
-}
-);
+});
+
 app.get('/assets/base64.js', function(req, res){
     res.sendfile('assets/base64.js');
 });
 
 io.on('connection', function(socket){
-    console.log('a user connected');
+    console_log('a user connected');
     socket.on('disconnect', function(){
-        console.log('user disconnected');
+        console_log('user disconnected');
     });
 
     socket.on('chat message', function(msg){
-        console.log('message: ' + msg);
         io.emit('chat message', msg);
-
+        console_log('message: ' + msg);
     });
-
-//    socket.broadcast.emit('hi');
-
-
 });
 
 io.on('connection', function(socket){
     socket.on('chat message', function(msg){
-        console.log('message: ' + msg);
+        console_log('message: ' + msg);
     });
 });
 
