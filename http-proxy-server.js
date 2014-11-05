@@ -4,6 +4,7 @@
  * @see http://newspaint.wordpress.com/2012/11/05/node-js-http-and-https-proxy/
  */
 
+var out_bound_ip = '1.2.3.4';
 var index_port = getArgValue('-pmon');
 if (index_port == '') {
     index_port = 8080;
@@ -117,6 +118,7 @@ function httpUserRequest(userRequest, userResponse) {
             options.headers['host'] = options.host_origin; // options.host_origin + ', ' + options.host + ':' + options.port;
             options.headers['x-pmon-server-forwarded'] = options.host_origin + ', ' + options.host + ':' + options.port;
         }
+        options.headers['x-forwarded-for'] = [userRequest.connection.remoteAddress, out_bound_ip].join(", ");
     } catch(e) {
         //console.log("Exception: " + e.message);
     }
