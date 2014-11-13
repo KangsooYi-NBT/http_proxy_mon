@@ -161,7 +161,14 @@ function httpUserRequest(userRequest, userResponse) {
                         if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
                             chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
                             userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
-                            userResponse._info.body += euckr2utf8.convert(chunk);
+                            try {
+                                userResponse._info.body += euckr2utf8(chunk);
+                            } catch(e) {
+                                if (debugging) {
+                                    console.log('exception message: ' + e.message);
+                                }
+                                userResponse._info.body += chunk;
+                            }
                         } else {
                             userResponse._info.body += chunk;
                         }
