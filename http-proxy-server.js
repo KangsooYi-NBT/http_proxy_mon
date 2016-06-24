@@ -16,8 +16,8 @@ var socket = require('socket.io-client')('http://localhost:' + index_port);
 var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
-var Iconv  = require('iconv').Iconv;
-var euckr2utf8 = new Iconv('EUC-KR', 'UTF-8//TRANSLIT//IGNORE');
+// var Iconv  = require('iconv').Iconv;
+// var euckr2utf8 = new Iconv('EUC-KR', 'UTF-8//TRANSLIT//IGNORE');
 
 var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
@@ -75,7 +75,7 @@ function httpUserRequest(userRequest, userResponse) {
     userRequest['httpVersion'] = '1.1';
 
     var httpVersion = userRequest['httpVersion'];
-    var hostport = getHostPortFromString(userRequest.headers['host'], 80);
+    var hostPort = getHostPortFromString(userRequest.headers['host'], 80);
 
     // have to extract the path from the requested URL
     var path = userRequest.url;
@@ -93,8 +93,8 @@ function httpUserRequest(userRequest, userResponse) {
     }
 
     var options = {
-        'host': hostport[0],
-        'port': hostport[1],
+        'host': hostPort[0],
+        'port': hostPort[1],
         'method': userRequest.method,
         'path': path,
         'agent': userRequest.agent,
@@ -136,8 +136,12 @@ function httpUserRequest(userRequest, userResponse) {
     userRequest._info.reqInfo.protocol = 'http';
     userRequest._info.headers = options['headers'];
 
-    console.log("HTTP ProxySocket: " + hostport[1] + " | " + hostport[0]);
-
+    reqInfo = userRequest._info.reqInfo
+    port = reqInfo['port']
+    port = (port == '80') ? '' : ':' + port
+    console.log("HTTP ProxySocket: " + reqInfo['protocol'] + '://' + reqInfo['host'] + port + reqInfo['path'])
+    // console.log(reqInfo)
+ 
     var proxyRequest = http.request(
         options,
         function (proxyResponse) {
@@ -158,20 +162,20 @@ function httpUserRequest(userRequest, userResponse) {
                         userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
                         //
                     } else {
-                        if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
-                            chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
-                            userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
-                            try {
-                                userResponse._info.body += euckr2utf8(chunk);
-                            } catch(e) {
-                                if (debugging) {
-                                    console.log('exception message: ' + e.message);
-                                }
-                                userResponse._info.body += chunk;
-                            }
-                        } else {
-                            userResponse._info.body += chunk;
-                        }
+                        // if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
+                        //     chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
+                        //     userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
+                        //     try {
+                        //         userResponse._info.body += euckr2utf8(chunk);
+                        //     } catch(e) {
+                        //         if (debugging) {
+                        //             console.log('exception message: ' + e.message);
+                        //         }
+                        //         userResponse._info.body += chunk;
+                        //     }
+                        // } else {
+                        userResponse._info.body += chunk;
+                        // }
                     }
 
                     if (debugging) {
@@ -286,19 +290,19 @@ function main() {
     // add handler for HTTPS (which issues a CONNECT to the proxy)
     server.addListener(
         'connect',
-        function (request, socketRequest, bodyhead) {
+        function (request, socketRequest, bodyHead) {
             var url = request.url;
             var httpVersion = request.httpVersion;
-            var hostport = getHostPortFromString(url, 443);
+            var hostPort = getHostPortFromString(url, 443);
 
             // set up TCP connection
             var proxySocket = new net.Socket();
 
             proxySocket.connect(
-                parseInt(hostport[1]), hostport[0],
+                parseInt(hostPort[1]), hostPort[0],
                 function () {
-                    console.log("HTTPS ProxySocket: " + hostport[1] + " | " + hostport[0]);
-                    proxySocket.write(bodyhead);
+                    console.log("HTTPS ProxySocket: " + url)
+                    proxySocket.write(bodyHead);
 
                     // tell the caller the connection was successfully established
                     socketRequest.write("HTTP/" + httpVersion + " 200 Connection established\r\n\r\n");

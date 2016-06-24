@@ -1,7 +1,5 @@
 {
     "default": {
-    },
-    "cashslide-qa": {
-        "cashslide.co.kr:80": "dev.fronto.co:80"
+        "{NEED_DOMAIN}:{PORT}": "{REPLACEMENT_DOMAIN}:{PORT}"
     }
 }
