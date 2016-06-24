@@ -1,3 +1,9 @@
+2016/06/24
+  - Node v4.4.6LTS Support
+    * $ node index.js &
+    * $ node http-proxy-server.js
+    
+
 설치 및 실행:
   
   * $ cd {APP_ROOT}
