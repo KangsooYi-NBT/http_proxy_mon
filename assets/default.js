@@ -19,6 +19,7 @@ $(document).ready(function() {
 // Message Receiver
 socket.on('chat message', function(msg)
 {
+    // console.log(msg)
     localStorage.setItem(++uniq, msg);
     render(uniq);
 });
@@ -63,8 +64,11 @@ function render(id, is_append)
             isViaProxy = true;
         }
         var status = response.headers.status;
-        if (status == null) {
+        if (status == null || status == '') {
             status = 200;
+        }
+        if (typeof status == 'number') {
+            status = status + ' ' + getStatusText(status)
         }
 
         var row = '';
@@ -137,11 +141,11 @@ function getResponseOrigin(reqInfo, headers, body)
 {
     var line = [];
     var status = headers.status;
-    if (status == null) {
+    if (status == null || status == '') {
         status = 200;
     }
 
-    line.push('HTTP ' + status + ' ' + getStatusText(status));
+    line.push('HTTP/' + reqInfo.httpVersion + ' ' + status + getStatusText(status));
     for (var k in headers) {
         if (k == 'status') {
             continue;
@@ -175,6 +179,10 @@ function show_origin(id)
 
 function getStatusText(code)
 {
+    if (typeof code == 'string') {
+        return ''
+    }
+    
     var statusText = {
         '100': 'Continue'
         , '101': 'Switching Protocols'
@@ -218,7 +226,7 @@ function getStatusText(code)
         , '505': 'HTTP Version not supported'
     };
 
-    return statusText[code];
+    return ' ' + statusText[code.toString()];
 }
 
 
