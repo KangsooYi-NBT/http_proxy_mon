@@ -1,3 +1,7 @@
+2016/07/28
+  - hosts.json에 정의되어 목적지가 변경된 경우만 WebConsole을 통해 추적하기 옵션 추가 (-o t)
+    * $ node http-proxy-server.js -o t
+  
 2016/06/24
   - Node v4.4.6LTS Support
     * $ node index.js &

@@ -41,6 +41,24 @@ app.get('/assets/base64.js', function(req, res){
     res.sendfile('assets/base64.js');
 });
 
+
+app.get('/assets/cdn/css/bootstrap.min.css', function(req, res){
+    res.sendfile('assets/cdn/css/bootstrap.min.css');
+});
+app.get('/assets/cdn/css/bootstrap-theme.min.css', function(req, res){
+    res.sendfile('assets/cdn/css/bootstrap-theme.min.css');
+});
+
+app.get('/assets/cdn/js/bootstrap.min.js', function(req, res){
+    res.sendfile('assets/cdn/js/bootstrap.min.js');
+});
+app.get('/assets/cdn/js/jquery.min.js', function(req, res){
+    res.sendfile('assets/cdn/js/jquery.min.js');
+});
+app.get('/assets/cdn/js/sprintf.min.js', function(req, res){
+    res.sendfile('assets/cdn/js/sprintf.min.js');
+});
+
 io.on('connection', function(socket){
     console_log('a user connected');
     socket.on('disconnect', function(){

@@ -16,12 +16,10 @@ var socket = require('socket.io-client')('http://localhost:' + index_port);
 var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
-// var Iconv  = require('iconv').Iconv;
-// var euckr2utf8 = new Iconv('EUC-KR', 'UTF-8//TRANSLIT//IGNORE');
-
 var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
 var HOSTS = [];
+var TRACKING_ONLY_VIA_PROXY = false;
 
 function p(obj)
 {
@@ -113,10 +111,14 @@ function httpUserRequest(userRequest, userResponse) {
             options.host = tmp['hostname'];
             options.port = tmp['port'];
             options.headers.host = tmp['host'];
-            options.host_origin = srcHostPort;
+            if (options.port == 80) {
+                options.host_origin = options.host;
+            } else {
+                options.host_origin = srcHostPort;
+            }
 
             options.headers['host'] = options.host_origin; // options.host_origin + ', ' + options.host + ':' + options.port;
-            options.headers['x-pmon-server-forwarded'] = options.host_origin + ', ' + options.host + ':' + options.port;
+            options.headers['x-pmon-server-forwarded'] = srcHostPort + ', ' + options.host + ':' + options.port;
         }
         options.headers['x-forwarded-for'] = [userRequest.connection.remoteAddress, out_bound_ip].join(", ");
     } catch(e) {
@@ -141,7 +143,7 @@ function httpUserRequest(userRequest, userResponse) {
     port = (port == '80') ? '' : ':' + port
     console.log("HTTP ProxySocket: " + reqInfo['protocol'] + '://' + reqInfo['host'] + port + reqInfo['path'])
     // console.log(reqInfo)
- 
+
     var proxyRequest = http.request(
         options,
         function (proxyResponse) {
@@ -154,87 +156,101 @@ function httpUserRequest(userRequest, userResponse) {
             }
 
             proxyResponse.on('data', function (chunk) {
-                    if (typeof userResponse._info.body == 'undefined') {
-                        userResponse._info.body = '';
-                    }
+                    try {
+                        if (typeof userResponse._info.body == 'undefined') {
+                            userResponse._info.body = '';
+                        }
 
-                    if (getArrayValue(userResponse._info.headers, 'content-type').match(/^image\//g) ||
-                        userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
-                        //
-                    } else {
-                        // if (userResponse._info.headers['content-type'].match(/euc-kr/i) ||
-                        //     chunk.toString().match(/xml version="1.0" encoding="EUC-KR"/i) ||
-                        //     userResponse._info.body.toString().match(/xml version="1.0" encoding="EUC-KR"/i)) {
-                        //     try {
-                        //         userResponse._info.body += euckr2utf8(chunk);
-                        //     } catch(e) {
-                        //         if (debugging) {
-                        //             console.log('exception message: ' + e.message);
-                        //         }
-                        //         userResponse._info.body += chunk;
-                        //     }
-                        // } else {
-                        userResponse._info.body += chunk;
-                        // }
-                    }
+                        if (getArrayValue(userResponse._info.headers, 'content-type').match(/^image\//g) ||
+                            userRequest._info.reqInfo.path.toLowerCase().match(/\.(jpg|gif|png)$/)) {
+                            //
+                        } else {
+                            userResponse._info.body += chunk;
+                        }
 
-                    if (debugging) {
-                        console.log("<<< " + chunk);
+                        if (debugging) {
+                            console.log("<<< " + chunk);
+                        }
+                        userResponse.write(chunk);
+                    } catch (e) {
+                        console.log(e.message)
                     }
-                    userResponse.write(chunk);
                 }
             );
 
             proxyResponse.on('end',
                 function () {
-                    userResponse.end();
-
-                    // Content-Encoding
-                    if (getArrayValue(userResponse._info.headers, 'content-encoding') == 'gzip') {
-                        //
-                    }
-
                     try {
-                        if (getArrayValue(userResponse._info.headers, 'content-length') == '') {
-                            userResponse._info.headers['content-length'] = userResponse._info.body.length;
+                        userResponse.end();
+
+                        // Content-Encoding
+                        if (getArrayValue(userResponse._info.headers, 'content-encoding') == 'gzip') {
+                            //
+                        }
+
+                        try {
+                            if (getArrayValue(userResponse._info.headers, 'content-length') == '') {
+                                userResponse._info.headers['content-length'] = userResponse._info.body.length;
+                            }
+                        } catch (e) {
+                            userResponse._info.headers['content-length'] = -1;
+                        }
+
+                        var msg = {
+                            'request': userRequest._info,
+                            'response': userResponse._info
+                        }
+
+                        if (TRACKING_ONLY_VIA_PROXY) {
+                            if (typeof(options.headers['x-pmon-server-forwarded']) != 'undefined') {
+                                send_websocket(msg);
+                            }
+                        } else {
+                            send_websocket(msg);
                         }
                     } catch (e) {
-                        userResponse._info.headers['content-length'] = -1;
+                        console.log(e.message)
                     }
-
-                    var msg = {
-                        'request': userRequest._info,
-                        'response': userResponse._info
-                    }
-                    send_websocket(msg);
                 }
             );
         }
     );
 
     proxyRequest.on('error', function (error) {
-            userResponse.writeHead(500);
-            userResponse.write(
+            try {
+                userResponse.writeHead(500);
+                userResponse.write(
                     "<h1>500 Error</h1>\r\n<p>Error was <pre>" + error + "</pre></p>\r\n</body></html>\r\n"
-            );
-            userResponse.end();
+                );
+                userResponse.end();
+            } catch (e) {
+                console.log(e.message)
+            }
         }
     );
 
     userRequest.addListener('data', function (chunk) {
-            if (debugging) {
-                console.log(">>> " + chunk);
+            try {
+                if (debugging) {
+                    console.log(">>> " + chunk);
+                }
+                if (typeof userRequest._info.body == 'undefined') {
+                    userRequest._info.body = '';
+                }
+                userRequest._info.body += chunk;
+                proxyRequest.write(chunk);
+            } catch (e) {
+                console.log(e.message)
             }
-            if (typeof userRequest._info.body == 'undefined') {
-                userRequest._info.body = '';
-            }
-            userRequest._info.body += chunk;
-            proxyRequest.write(chunk);
         }
     );
 
     userRequest.addListener('end', function () {
-            proxyRequest.end();
+            try {
+                proxyRequest.end();
+            } catch (e) {
+                console.log(e.message)
+            }
         }
     );
 }
@@ -272,6 +288,10 @@ function main() {
             argn++;
             continue;
         }
+
+        if (process.argv[argn] === '-o') { // 목적지가 변경된 경우만 추적을 원한다면 't'
+            TRACKING_ONLY_VIA_PROXY = process.argv[argn + 1].toString() == 't' ? true : false
+        }
     }
 
     refreshLocalHosts(caseId);
@@ -279,6 +299,7 @@ function main() {
     console.log('HTTP-Proxy listening on port ' + port);
     console.log('HTTP-Mon sending on port ' + index_port);
     console.log('localHostsCaseId: ' + caseId);
+    console.log('TRACKING_ONLY_VIA_PROXY: ' + (TRACKING_ONLY_VIA_PROXY ? 'TRUE' : 'FALSE'));
 
     // start HTTP server with custom request handler callback function
     var server = http.createServer(httpUserRequest).listen(port);
@@ -298,47 +319,51 @@ function main() {
             // set up TCP connection
             var proxySocket = new net.Socket();
 
-            proxySocket.connect(
-                parseInt(hostPort[1]), hostPort[0],
-                function () {
-                    console.log("HTTPS ProxySocket: " + url)
-                    proxySocket.write(bodyHead);
+            try {
+                proxySocket.connect(
+                    parseInt(hostPort[1]), hostPort[0],
+                    function () {
+                        console.log("HTTPS ProxySocket: " + url)
+                        proxySocket.write(bodyHead);
 
-                    // tell the caller the connection was successfully established
-                    socketRequest.write("HTTP/" + httpVersion + " 200 Connection established\r\n\r\n");
-                }
-            );
+                        // tell the caller the connection was successfully established
+                        socketRequest.write("HTTP/" + httpVersion + " 200 Connection established\r\n\r\n");
+                    }
+                );
 
-            proxySocket.on('data', function (chunk) {
-                    socketRequest.write(chunk);
-                }
-            );
+                proxySocket.on('data', function (chunk) {
+                        socketRequest.write(chunk);
+                    }
+                );
 
-            proxySocket.on('end', function () {
-                    socketRequest.end();
-                }
-            );
+                proxySocket.on('end', function () {
+                        socketRequest.end();
+                    }
+                );
 
-            socketRequest.on('data', function (chunk) {
-                    proxySocket.write(chunk);
-                }
-            );
+                socketRequest.on('data', function (chunk) {
+                        proxySocket.write(chunk);
+                    }
+                );
 
-            socketRequest.on('end', function () {
-                    proxySocket.end();
-                }
-            );
+                socketRequest.on('end', function () {
+                        proxySocket.end();
+                    }
+                );
 
-            proxySocket.on('error', function (err) {
-                    socketRequest.write("HTTP/" + httpVersion + " 500 Connection error\r\n\r\n");
-                    socketRequest.end();
-                }
-            );
+                proxySocket.on('error', function (err) {
+                        socketRequest.write("HTTP/" + httpVersion + " 500 Connection error\r\n\r\n");
+                        socketRequest.end();
+                    }
+                );
 
-            socketRequest.on('error', function (err) {
-                    proxySocket.end();
-                }
-            );
+                socketRequest.on('error', function (err) {
+                        proxySocket.end();
+                    }
+                );
+            } catch (e) {
+                console.log(e.message)
+            }
         }
     ); // HTTPS connect listener
 }

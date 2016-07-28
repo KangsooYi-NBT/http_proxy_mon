@@ -101,6 +101,7 @@ function getRequestOrigin(reqInfo, headers, body)
 {
     var line = [];
     line.push(reqInfo.method + ' ' +  reqInfo.path + ' HTTP/' + reqInfo.httpVersion);
+    curl_headers = ''
     for (var k in headers) {
         if (k == 'x-pmon-server-forwarded') {
             var v = headers[k];
@@ -117,6 +118,7 @@ function getRequestOrigin(reqInfo, headers, body)
         } else {
             line.push(k + ': ' + headers[k]);
         }
+        curl_headers+= '\\ <br />&nbsp;-H "' + k + ': ' + headers[k] + '" '
     }
 
     line.push('');
@@ -125,15 +127,17 @@ function getRequestOrigin(reqInfo, headers, body)
 
         line.push('<div class="alert alert-success">' + body + '</div>');
         line.push('');
+    } else {
+        body = ''
     }
 
     if (reqInfo.method == 'GET') {
         params = '';
     } else {
-        params = " -X " + reqInfo.method + " -d '" + body + "'";
+        params = " -X " + reqInfo.method + " \\<br /> -d '" + body + "'";
     }
 
-    line.push('<blockquote class="font"> curl "' + getUrl(reqInfo, true) + '" ' + params + '</blockquote>');
+    line.push('<blockquote class="font">curl "' + getUrl(reqInfo, true) + '" ' + params + curl_headers + '</blockquote>');
     return line.join('<br />');
 }
 

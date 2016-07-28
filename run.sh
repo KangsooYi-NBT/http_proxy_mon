@@ -12,5 +12,10 @@ echo "# - WIFI_GW = $WIFI_GW "
 echo "#---------------------------------------------------"
 echo ""
 
-node index.js &
-node http-proxy-server.js
+INDEX_RUNNING=$( ps aux | grep 'node index.js' | grep -v grep | wc -l | awk '{ print $1 }' )
+if [ $INDEX_RUNNING -eq 0 ]
+then
+	node index.js &
+fi
+
+node http-proxy-server.js -o t
