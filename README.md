@@ -1,3 +1,7 @@
+2016/08/04
+  - Proxy서버가 목적지와 통신 후 클라이언트에 결과를 반환하기 전 대기(sleep) 옵션 추가 (-s 초)
+    * $ node http-proxy-server.js -s 1.0
+    
 2016/07/28
   - hosts.json에 정의되어 목적지가 변경된 경우만 WebConsole을 통해 추적하기 옵션 추가 (-o t)
     * $ node http-proxy-server.js -o t

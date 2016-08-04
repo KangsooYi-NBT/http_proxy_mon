@@ -16,10 +16,13 @@ var socket = require('socket.io-client')('http://localhost:' + index_port);
 var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
+var sleep = require('sleep');
+
 var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
 var HOSTS = [];
 var TRACKING_ONLY_VIA_PROXY = false;
+var PROXY_RESPONSE_DELAY_TIME_MS = 0.0;
 
 function p(obj)
 {
@@ -183,6 +186,12 @@ function httpUserRequest(userRequest, userResponse) {
                     try {
                         userResponse.end();
 
+                        //클라이언트에 반환 전 Sleep
+                        content_type = getArrayValue(userResponse._info.headers, 'content-type')
+                        if (content_type.substring(0,6) != 'image/') {
+                            sleep.usleep(PROXY_RESPONSE_DELAY_TIME_MS)
+                        }
+
                         // Content-Encoding
                         if (getArrayValue(userResponse._info.headers, 'content-encoding') == 'gzip') {
                             //
@@ -292,6 +301,11 @@ function main() {
         if (process.argv[argn] === '-o') { // 목적지가 변경된 경우만 추적을 원한다면 't'
             TRACKING_ONLY_VIA_PROXY = process.argv[argn + 1].toString() == 't' ? true : false
         }
+
+        if (process.argv[argn] === '-s') { //목적지 서버와 통신 후 반환 지연 시간
+            //1 second is 1000000 microseconds
+            PROXY_RESPONSE_DELAY_TIME_MS = 1000000 * parseFloat(process.argv[argn + 1].toString())
+        }
     }
 
     refreshLocalHosts(caseId);
@@ -323,7 +337,7 @@ function main() {
                 proxySocket.connect(
                     parseInt(hostPort[1]), hostPort[0],
                     function () {
-                        console.log("HTTPS ProxySocket: " + url)
+                        console.log("HTTPS ProxySocket: " + request.url)
                         proxySocket.write(bodyHead);
 
                         // tell the caller the connection was successfully established
