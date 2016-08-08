@@ -18,7 +18,7 @@ then
 	node index.js &
 fi
 
-node http-proxy-server.js -o t -s 1.0
+node http-proxy-server.js -o t -s 0.0
 
 
 INDEX_PID=$( ps aux | grep 'node index.js' | grep -v grep | awk '{ print $2 }' )

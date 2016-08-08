@@ -168,6 +168,13 @@ function getResponseOrigin(reqInfo, headers, body)
         if (typeof body == 'undefined') {
             body = '';
         }
+
+        if ($('#json_pretty').is(':checked')) {
+            if (headers['content-type'].match(/json/i)) {
+                body = JSON.stringify(JSON.parse(body), null, 4)
+            }
+        }
+
         body = '<xmp>' + body + '</xmp>';
         line.push('<div class="alert alert-danger">' + body + '</div>');
     }
