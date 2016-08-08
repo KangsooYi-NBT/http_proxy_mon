@@ -97,6 +97,7 @@ function render(id, is_append)
         } else {
             row+= '<tr style="text-decoration: line-through;">';
         }
+        row+= '    <td>' + request.reqInfo.method + '</td>';
         row+= '    <td class="alt"><a href="#" onclick="show_origin(' + id + '); return false;">' + getUrl(request.reqInfo) + '</a></td>';
         row+= '    <td>' + status + '</td>';
         row+= '    <td>' + response.headers['content-type'] + '</td>';
