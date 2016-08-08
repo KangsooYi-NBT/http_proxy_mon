@@ -12,6 +12,26 @@ Number.prototype.numberFormat = function(decimals, dec_point, thousands_sep) {
     return parts.join(dec_point);
 }
 
+//@see http://stackoverflow.com/questions/4810841/how-can-i-pretty-print-json-using-javascript
+function json_syntaxHighlight(json) {
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        var cls = 'number';
+        if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+                cls = 'key';
+            } else {
+                cls = 'string';
+            }
+        } else if (/true|false/.test(match)) {
+            cls = 'boolean';
+        } else if (/null/.test(match)) {
+            cls = 'null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
 $(document).ready(function() {
     localStorage.clear();
 });
@@ -169,13 +189,13 @@ function getResponseOrigin(reqInfo, headers, body)
             body = '';
         }
 
-        if ($('#json_pretty').is(':checked')) {
-            if (headers['content-type'].match(/json/i)) {
-                body = JSON.stringify(JSON.parse(body), null, 4)
-            }
+        if ($('#json_pretty').is(':checked') && headers['content-type'].match(/json/i)) {
+            body = JSON.stringify(JSON.parse(body), null, 4)
+            body = '<pre class="json_pretty">' + json_syntaxHighlight(body) + '</pre>'
+        } else {
+            body = '<xmp>' + body + '</xmp>';
         }
 
-        body = '<xmp>' + body + '</xmp>';
         line.push('<div class="alert alert-danger">' + body + '</div>');
     }
 

@@ -71,3 +71,12 @@
     font-style: italic;
 }
 
+
+
+/* for JSON Pretty */
+.json_pretty { background-color: transparent; border: 0px; }
+.string { color: green; }
+.number { color: darkorange; }
+.boolean { color: blue; }
+.null { color: magenta; }
+.key { color: red; }
