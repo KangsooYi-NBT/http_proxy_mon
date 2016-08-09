@@ -17,6 +17,10 @@ var print_r = require('print_r').print_r;
 var url = require('url');
 var fs = require('fs');
 var sleep = require('sleep');
+var sprintf = require("sprintf-js").sprintf,
+    vsprintf = require("sprintf-js").vsprintf;
+//require('log-timestamp')(function() { return '[' + new Date().toISOString() + '] %s' });
+require('log-timestamp')(function() { return '[' + new Date().toLocaleString('ko-KR') + '] %s' });
 
 var debugging = 0;
 var regex_hostport = /^([^:]+)(:([0-9]+))?$/;
@@ -123,9 +127,9 @@ function httpUserRequest(userRequest, userResponse) {
             options.headers['host'] = options.host_origin; // options.host_origin + ', ' + options.host + ':' + options.port;
             options.headers['x-pmon-server-forwarded'] = srcHostPort + ', ' + options.host + ':' + options.port;
         }
-        options.headers['x-forwarded-for'] = [userRequest.connection.remoteAddress, out_bound_ip].join(", ");
+        // options.headers['x-forwarded-for'] = [userRequest.connection.remoteAddress, out_bound_ip].join(", ");
     } catch(e) {
-        //console.log("Exception: " + e.message);
+        console.log("Exception: " + e.message);
     }
     delete options.headers['accept-encoding'];
 //    options.headers['accept-encoding'] = 'gzip';
@@ -144,8 +148,8 @@ function httpUserRequest(userRequest, userResponse) {
     reqInfo = userRequest._info.reqInfo
     port = reqInfo['port']
     port = (port == '80') ? '' : ':' + port
-    console.log("HTTP ProxySocket: " + reqInfo['protocol'] + '://' + reqInfo['host'] + port + reqInfo['path'])
-    // console.log(reqInfo)
+    console.log(sprintf("HTTP ProxySocket: [%s] %s://%s%s%s", reqInfo['method'], reqInfo['protocol'], reqInfo['host'], port, reqInfo['path']))
+    //console.log(reqInfo)
 
     var proxyRequest = http.request(
         options,
@@ -186,12 +190,6 @@ function httpUserRequest(userRequest, userResponse) {
                     try {
                         userResponse.end();
 
-                        //클라이언트에 반환 전 Sleep
-                        content_type = getArrayValue(userResponse._info.headers, 'content-type')
-                        if (content_type.substring(0,6) != 'image/') {
-                            sleep.usleep(PROXY_RESPONSE_DELAY_TIME_MS)
-                        }
-
                         // Content-Encoding
                         if (getArrayValue(userResponse._info.headers, 'content-encoding') == 'gzip') {
                             //
@@ -202,6 +200,7 @@ function httpUserRequest(userRequest, userResponse) {
                                 userResponse._info.headers['content-length'] = userResponse._info.body.length;
                             }
                         } catch (e) {
+                            console.log(e.message)
                             userResponse._info.headers['content-length'] = -1;
                         }
 
@@ -225,11 +224,11 @@ function httpUserRequest(userRequest, userResponse) {
         }
     );
 
-    proxyRequest.on('error', function (error) {
+    proxyRequest.on('error', function (err) {
             try {
                 userResponse.writeHead(500);
                 userResponse.write(
-                    "<h1>500 Error</h1>\r\n<p>Error was <pre>" + error + "</pre></p>\r\n</body></html>\r\n"
+                    "<h1>500 Error</h1>\r\n<p>Error was <pre>" + err + "</pre></p>\r\n</body></html>\r\n"
                 );
                 userResponse.end();
             } catch (e) {
@@ -256,6 +255,12 @@ function httpUserRequest(userRequest, userResponse) {
 
     userRequest.addListener('end', function () {
             try {
+                if (TRACKING_ONLY_VIA_PROXY) {
+                    if (typeof(options.headers['x-pmon-server-forwarded']) != 'undefined') {
+                        sleep.usleep(PROXY_RESPONSE_DELAY_TIME_MS)
+                    }
+                }
+
                 proxyRequest.end();
             } catch (e) {
                 console.log(e.message)
@@ -310,10 +315,10 @@ function main() {
 
     refreshLocalHosts(caseId);
 
-    console.log('HTTP-Proxy listening on port ' + port);
-    console.log('HTTP-Mon sending on port ' + index_port);
-    console.log('localHostsCaseId: ' + caseId);
-    console.log('TRACKING_ONLY_VIA_PROXY: ' + (TRACKING_ONLY_VIA_PROXY ? 'TRUE' : 'FALSE'));
+    console.log('=== HTTP-Proxy listening on port ' + port);
+    console.log('* localHostsCaseId: [' + caseId + ']');
+    console.log('* TRACKING_ONLY_VIA_PROXY: [' + (TRACKING_ONLY_VIA_PROXY ? 'TRUE' : 'FALSE') + ']');
+    console.log('* PROXY_RESPONSE_DELAY_TIME_SEC: [' + parseFloat(PROXY_RESPONSE_DELAY_TIME_MS  / 1000000.0) + ']');
 
     // start HTTP server with custom request handler callback function
     var server = http.createServer(httpUserRequest).listen(port);
@@ -355,6 +360,12 @@ function main() {
                     }
                 );
 
+                proxySocket.on('error', function (err) {
+                        socketRequest.write("HTTP/" + httpVersion + " 500 Connection error\r\n\r\n");
+                        socketRequest.end();
+                    }
+                );
+
                 socketRequest.on('data', function (chunk) {
                         proxySocket.write(chunk);
                     }
@@ -362,12 +373,6 @@ function main() {
 
                 socketRequest.on('end', function () {
                         proxySocket.end();
-                    }
-                );
-
-                proxySocket.on('error', function (err) {
-                        socketRequest.write("HTTP/" + httpVersion + " 500 Connection error\r\n\r\n");
-                        socketRequest.end();
                     }
                 );
 

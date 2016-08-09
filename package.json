@@ -11,6 +11,8 @@
     "socket.io-client": "1.0.4",
     "express": "4.4.3",
     "sprintf": "0.1.3",
-    "sleep": "3.0.1"
+    "sleep": "3.0.1",
+    "log-timestamp": "0.1.2",
+    "sprintf-js": "1.0.3"
   }
 }
