@@ -1,6 +1,9 @@
 #!/bin/bash
 
-PROXY_GROUP_NAME="default"
+PROXY_GROUP_NAME=$1
+if [ "$PROXY_GROUP_NAME" == "" ]; then
+    PROXY_GROUP_NAME="default"
+fi
 TRACKING_ONLY_PROXYING_DOMAIN=t # HTTP Proxy 요청 내역을 보여주는 WEB_CONSOLE에 PROXY_GROUP_NAME에 정의된 도메인만 표시 할 경우 t, 아니면 f
 PROXY_RESPONSE_SLEEP=0.0        # HTTP Proxy로 요청된 결과를 반환 할때 의도된 Sleep Time 지정
 PROXY_PORT=8888
